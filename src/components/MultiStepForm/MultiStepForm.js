@@ -1,9 +1,9 @@
 import React from 'react';
-import { Wizard, Steps, Step } from 'react-albus';
+import { useFormContext } from 'react-hook-form';
 import styled from 'styled-components';
 import { Button, ProgressBar } from 'react-bootstrap';
 import { formConfig } from './config/formConfig';
-import { useFormContext } from './context/FormContext';
+import { useMultiStepForm } from './context/FormContext';
 import BasicInfoForm from './forms/BasicInfoForm';
 import ContactInfoForm from './forms/ContactInfoForm';
 
@@ -28,6 +28,10 @@ const Progress = styled(ProgressBar)`
   margin-bottom: 30px;
 `;
 
+const FormContainer = styled.div`
+  margin-bottom: 30px;
+`;
+
 // Map form IDs to their components
 const formComponents = {
   basicInfo: BasicInfoForm,
@@ -36,78 +40,72 @@ const formComponents = {
 };
 
 const MultiStepForm = () => {
-  const { canAccessForm } = useFormContext();
+  const { canAccessForm, currentStep, nextStep, prevStep } = useMultiStepForm();
+  const { handleSubmit, formState: { isValid, errors } } = useFormContext();
   
-  const calculateProgress = (step) => {
-    const totalSteps = Object.keys(formConfig).length;
-    return ((step) / totalSteps) * 100;
+  const steps = Object.entries(formConfig);
+  const currentStepConfig = steps[currentStep][1];
+  
+  const calculateProgress = () => {
+    return ((currentStep + 1) / steps.length) * 100;
   };
 
-  const renderForms = (stepId) => {
-    const stepConfig = formConfig[stepId];
-    if (!stepConfig) return null;
+  const onSubmit = async (data) => {
+    if (currentStep === steps.length - 1) {
+      // Handle final form submission
+      console.log('Final form data:', data);
+    } else {
+      nextStep();
+    }
+  };
 
+  const renderForms = () => {
+    const [stepId, stepConfig] = steps[currentStep];
+    
     return Object.entries(stepConfig.forms).map(([formId, form]) => {
       if (!canAccessForm(form.requiredPrivilege)) return null;
 
       const FormComponent = formComponents[formId];
-      return FormComponent ? <FormComponent key={formId} /> : null;
+      return FormComponent ? (
+        <FormContainer key={formId}>
+          <FormComponent />
+        </FormContainer>
+      ) : null;
     });
   };
 
   return (
     <FormWrapper>
-      <Wizard
-        render={({
-          step,
-          steps,
-          next,
-          previous,
-          push,
-          history,
-        }) => (
-          <div>
-            <Progress
-              now={calculateProgress(steps.indexOf(step) + 1)}
-              variant="info"
-            />
-            
-            <StepTitle>
-              {formConfig[step.id]?.title || step.id}
-            </StepTitle>
-
-            <Steps>
-              {Object.entries(formConfig).map(([stepId, config]) => (
-                <Step
-                  key={stepId}
-                  id={stepId}
-                  render={({ next, previous }) => (
-                    <>
-                      {renderForms(stepId)}
-                      <StepNavigation>
-                        <Button
-                          variant="secondary"
-                          onClick={previous}
-                          disabled={steps.indexOf(step) === 0}
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          variant="primary"
-                          onClick={next}
-                          disabled={steps.indexOf(step) === steps.length - 1}
-                        >
-                          Next
-                        </Button>
-                      </StepNavigation>
-                    </>
-                  )}
-                />
-              ))}
-            </Steps>
-          </div>
-        )}
+      <Progress
+        now={calculateProgress()}
+        variant="info"
       />
+      
+      <StepTitle>
+        {currentStepConfig.title}
+      </StepTitle>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        {renderForms()}
+        
+        <StepNavigation>
+          <Button
+            variant="secondary"
+            onClick={prevStep}
+            disabled={currentStep === 0}
+            type="button"
+          >
+            Previous
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={!isValid}
+          >
+            {currentStep === steps.length - 1 ? 'Submit' : 'Next'}
+          </Button>
+        </StepNavigation>
+      </form>
     </FormWrapper>
   );
 };

@@ -1,52 +1,65 @@
 import React, { createContext, useContext, useState } from 'react';
+import { useForm, FormProvider } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { PRIVILEGE_LEVELS } from '../config/formConfig';
 
 const FormContext = createContext();
 
-export const FormProvider = ({ children, userPrivilege = PRIVILEGE_LEVELS.BASIC }) => {
-  const [formData, setFormData] = useState({});
+export const MultiStepFormProvider = ({ 
+  children, 
+  userPrivilege = PRIVILEGE_LEVELS.BASIC,
+  validationSchema,
+  defaultValues = {}
+}) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const methods = useForm({
+    mode: 'onChange',
+    resolver: validationSchema ? yupResolver(validationSchema) : undefined,
+    defaultValues
+  });
 
-  const updateFormData = (stepId, formId, data) => {
-    setFormData(prev => ({
-      ...prev,
-      [stepId]: {
-        ...prev[stepId],
-        [formId]: data,
-      },
-    }));
+  const nextStep = () => {
+    setCurrentStep(prev => prev + 1);
   };
 
-  const getFormData = (stepId, formId) => {
-    return formData[stepId]?.[formId] || {};
+  const prevStep = () => {
+    setCurrentStep(prev => prev - 1);
+  };
+
+  const goToStep = (step) => {
+    setCurrentStep(step);
   };
 
   const canAccessForm = (requiredPrivilege) => {
     const privilegeLevels = Object.values(PRIVILEGE_LEVELS);
     const userPrivilegeIndex = privilegeLevels.indexOf(userPrivilege);
     const requiredPrivilegeIndex = privilegeLevels.indexOf(requiredPrivilege);
-    
     return userPrivilegeIndex >= requiredPrivilegeIndex;
   };
 
   const value = {
-    formData,
-    updateFormData,
-    getFormData,
+    currentStep,
+    nextStep,
+    prevStep,
+    goToStep,
     canAccessForm,
-    userPrivilege,
+    userPrivilege
   };
 
   return (
     <FormContext.Provider value={value}>
-      {children}
+      <FormProvider {...methods}>
+        {children}
+      </FormProvider>
     </FormContext.Provider>
   );
 };
 
-export const useFormContext = () => {
+export const useMultiStepForm = () => {
   const context = useContext(FormContext);
   if (!context) {
-    throw new Error('useFormContext must be used within a FormProvider');
+    throw new Error('useMultiStepForm must be used within a MultiStepFormProvider');
   }
   return context;
 };

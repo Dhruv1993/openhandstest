@@ -1,47 +1,78 @@
 import React from 'react';
-import * as yup from 'yup';
-import BaseForm from './BaseForm';
-import { useFormContext } from '../context/FormContext';
+import { useFormContext } from 'react-hook-form';
+import { Form } from 'react-bootstrap';
+import styled from 'styled-components';
 
-const schema = yup.object().shape({
-  firstName: yup.string().required('First name is required'),
-  lastName: yup.string().required('Last name is required'),
-  dateOfBirth: yup.date().required('Date of birth is required'),
-});
+const FormSection = styled.div`
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
 
-const fields = [
-  {
-    name: 'firstName',
-    label: 'First Name',
-    type: 'text',
-    placeholder: 'Enter your first name',
-  },
-  {
-    name: 'lastName',
-    label: 'Last Name',
-    type: 'text',
-    placeholder: 'Enter your last name',
-  },
-  {
-    name: 'dateOfBirth',
-    label: 'Date of Birth',
-    type: 'date',
-  },
-];
+const FormTitle = styled.h3`
+  margin-bottom: 20px;
+  color: #333;
+`;
+
+const ErrorMessage = styled.span`
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 4px;
+  display: block;
+`;
 
 const BasicInfoForm = () => {
-  const { updateFormData, getFormData } = useFormContext();
-  
+  const { register, formState: { errors } } = useFormContext();
+
   return (
-    <BaseForm
-      title="Basic Information"
-      schema={schema}
-      fields={fields}
-      defaultValues={getFormData('personalInfo', 'basicInfo')}
-      onSubmit={(data, formId, stepId) => updateFormData('personalInfo', 'basicInfo', data)}
-      formId="basicInfo"
-      stepId="personalInfo"
-    />
+    <FormSection>
+      <FormTitle>Basic Information</FormTitle>
+      
+      <Form.Group className="mb-3">
+        <Form.Label>First Name</Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="Enter your first name"
+          {...register('firstName', {
+            required: 'First name is required'
+          })}
+          isInvalid={!!errors.firstName}
+        />
+        {errors.firstName && (
+          <ErrorMessage>{errors.firstName.message}</ErrorMessage>
+        )}
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Last Name</Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="Enter your last name"
+          {...register('lastName', {
+            required: 'Last name is required'
+          })}
+          isInvalid={!!errors.lastName}
+        />
+        {errors.lastName && (
+          <ErrorMessage>{errors.lastName.message}</ErrorMessage>
+        )}
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Date of Birth</Form.Label>
+        <Form.Control
+          type="date"
+          {...register('dateOfBirth', {
+            required: 'Date of birth is required'
+          })}
+          isInvalid={!!errors.dateOfBirth}
+        />
+        {errors.dateOfBirth && (
+          <ErrorMessage>{errors.dateOfBirth.message}</ErrorMessage>
+        )}
+      </Form.Group>
+    </FormSection>
   );
 };
 
